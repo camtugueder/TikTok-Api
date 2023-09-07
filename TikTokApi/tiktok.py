@@ -36,6 +36,8 @@ class TikTokPlaywrightSession:
     headers: dict = None
     ms_token: str = None
     base_url: str = "https://www.tiktok.com"
+    language: str = None
+    region: str = "US"
 
 
 class TikTokApi:
@@ -92,9 +94,11 @@ class TikTokApi:
     async def __set_session_params(self, session: TikTokPlaywrightSession):
         """Set the session params for a TikTokPlaywrightSession"""
         user_agent = await session.page.evaluate("() => navigator.userAgent")
-        language = await session.page.evaluate(
-            "() => navigator.language || navigator.userLanguage"
-        )
+        language = session.language
+        if language is None:
+            language = await session.page.evaluate(
+                "() => navigator.language || navigator.userLanguage"
+            )
         platform = await session.page.evaluate("() => navigator.platform")
         device_id = str(random.randint(10**18, 10**19 - 1))  # Random device id
         history_len = str(random.randint(1, 10))  # Random history length
@@ -126,7 +130,7 @@ class TikTokApi:
             "os": platform,
             "priority_region": "",
             "referer": "",
-            "region": "US",  # TODO: TikTokAPI option
+            "region": session.region,
             "screen_height": screen_height,
             "screen_width": screen_width,
             "tz_name": timezone,
@@ -143,6 +147,8 @@ class TikTokApi:
         sleep_after: int = 1,
         cookies: dict = None,
         suppress_resource_load_types: list[str] = None,
+        language: str = None,
+        region: str = "US"
     ):
         """Create a TikTokPlaywrightSession"""
         if ms_token is not None:
@@ -187,6 +193,8 @@ class TikTokApi:
             proxy=proxy,
             headers=request_headers,
             base_url=url,
+            region=region,
+            language=language
         )
         if ms_token is None:
             time.sleep(sleep_after)  # TODO: Find a better way to wait for msToken
@@ -212,6 +220,8 @@ class TikTokApi:
         override_browser_args: list[dict] = None,
         cookies: list[dict] = None,
         suppress_resource_load_types: list[str] = None,
+        language: str = None,
+        region: str = "US"
     ):
         """
         Create sessions for use within the TikTokApi class.
@@ -230,6 +240,8 @@ class TikTokApi:
             override_browser_args (list[dict]): A list of dictionaries containing arguments to pass to the browser.
             cookies (list[dict]): A list of cookies to use for the sessions, you can get these from your cookies after visiting TikTok.
             suppress_resource_load_types (list[str]): Types of resources to suppress playwright from loading, excluding more types will make playwright faster.. Types: document, stylesheet, image, media, font, script, textrack, xhr, fetch, eventsource, websocket, manifest, other.
+            language (str): A string representing the language to be used when sending requests to the API. "en-US, es-AR"
+            region (str): A string representing the region to be used when sending requests to the API. "US, BR, AR"
 
         Example Usage:
             .. code-block:: python
@@ -256,6 +268,8 @@ class TikTokApi:
                     sleep_after=sleep_after,
                     cookies=random_choice(cookies),
                     suppress_resource_load_types=suppress_resource_load_types,
+                    language=language,
+                    region=region
                 )
                 for _ in range(num_sessions)
             )
